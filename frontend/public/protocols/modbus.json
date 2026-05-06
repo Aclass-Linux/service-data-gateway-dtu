@@ -1,0 +1,9 @@
+{
+  "protocol": "modbus",
+  "version": "v1.2.0",
+  "transport": ["RTU", "TCP"],
+  "registerMap": {
+    "holding": "4x",
+    "input": "3x"
+  }
+}

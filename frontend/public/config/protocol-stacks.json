@@ -1,0 +1,32 @@
+{
+  "home": {
+    "name": "首页",
+    "description": "协议管理总览，不可关闭。"
+  },
+  "stacks": [
+    {
+      "id": "modbus",
+      "name": "Modbus",
+      "version": "v1.2.0",
+      "status": "active",
+      "summary": "支持 RTU/TCP，已接入采集网关。",
+      "filePath": "/protocols/modbus.json"
+    },
+    {
+      "id": "upp",
+      "name": "UPP",
+      "version": "v1.0.0",
+      "status": "active",
+      "summary": "用于标准化协议转换与上层平台交互。",
+      "filePath": "/protocols/upp.json"
+    },
+    {
+      "id": "dlt645",
+      "name": "DLT645",
+      "version": "v0.9.3",
+      "status": "pending",
+      "summary": "适配电表读数协议，待联调。",
+      "filePath": "/protocols/dlt645.json"
+    }
+  ]
+}
