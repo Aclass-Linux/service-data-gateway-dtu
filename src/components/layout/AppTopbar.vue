@@ -18,7 +18,7 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 18px 24px;
+  padding: 14px 18px;
   border: 1px solid rgba(223, 230, 244, 0.95);
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.9);
@@ -41,7 +41,7 @@ defineProps<{
 
 @media (max-width: 720px) {
   .topbar {
-    padding: 16px 18px;
+    padding: 12px 14px;
   }
 }
 </style>

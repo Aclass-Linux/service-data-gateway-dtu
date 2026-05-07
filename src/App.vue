@@ -21,9 +21,10 @@ function toggleSidebar() {
 
 <template>
   <main class="portal-page" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
-    <AppTopbar :title="pageTitle" />
+    <div class="app-shell">
+      <AppTopbar :title="pageTitle" />
 
-    <section class="workspace">
+      <section class="workspace">
       <AppSidebar
         :collapsed="sidebarCollapsed"
         :items="navigationItems"
@@ -34,23 +35,29 @@ function toggleSidebar() {
       <section class="main-panel">
         <RouterView />
       </section>
-    </section>
+      </section>
+    </div>
   </main>
 </template>
 
 <style scoped>
 .portal-page {
   min-height: 100vh;
-  padding: 18px;
+  padding: 8px 6px 10px;
   background: #f5f7fb;
   color: #4f5d78;
+}
+
+.app-shell {
+  width: 100%;
+  margin: 0;
 }
 
 .workspace {
   display: grid;
   grid-template-columns: 284px minmax(0, 1fr);
-  gap: 18px;
-  margin-top: 18px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .main-panel {
@@ -59,41 +66,6 @@ function toggleSidebar() {
 
 .sidebar-collapsed .workspace {
   grid-template-columns: 96px minmax(0, 1fr);
-}
-
-.sidebar-collapsed .sidebar {
-  padding: 16px 12px;
-}
-
-.sidebar-collapsed .sidebar-head {
-  justify-content: center;
-}
-
-.sidebar-collapsed .menu-toggle {
-  width: 42px;
-  border-radius: 16px;
-}
-
-.sidebar-collapsed .menu-toggle-arrow {
-  transform: rotate(-135deg);
-}
-
-.sidebar-collapsed .sidebar-brand {
-  display: none;
-}
-
-.sidebar-collapsed .nav-list {
-  justify-items: center;
-}
-
-.sidebar-collapsed .nav-item {
-  justify-content: center;
-  width: 56px;
-  padding: 0;
-}
-
-.sidebar-collapsed .nav-label {
-  display: none;
 }
 
 @media (max-width: 980px) {
@@ -105,7 +77,11 @@ function toggleSidebar() {
 
 @media (max-width: 720px) {
   .portal-page {
-    padding: 10px;
+    padding: 6px;
+  }
+
+  .app-shell {
+    width: 100%;
   }
 }
 </style>

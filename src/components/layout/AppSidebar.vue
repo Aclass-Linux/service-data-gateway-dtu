@@ -14,7 +14,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ 'sidebar-collapsed': collapsed }">
     <div class="sidebar-head">
       <div class="sidebar-brand">
         <div class="brand-mark">DTU</div>
@@ -217,5 +217,71 @@ const emit = defineEmits<{
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.sidebar-collapsed {
+  padding: 16px 12px;
+}
+
+.sidebar-collapsed .sidebar-head {
+  justify-content: center;
+}
+
+.sidebar-collapsed .sidebar-brand {
+  display: none;
+}
+
+.sidebar-collapsed .menu-toggle {
+  width: 42px;
+  border-radius: 16px;
+}
+
+.sidebar-collapsed .menu-toggle-arrow {
+  transform: rotate(-135deg);
+}
+
+.sidebar-collapsed .nav-list {
+  justify-items: center;
+}
+
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  width: 56px;
+  padding: 0;
+}
+
+.sidebar-collapsed .nav-label {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .sidebar,
+  .sidebar-collapsed {
+    padding: 16px;
+  }
+
+  .sidebar-head,
+  .sidebar-collapsed .sidebar-head {
+    justify-content: space-between;
+  }
+
+  .sidebar-brand,
+  .sidebar-collapsed .sidebar-brand {
+    display: flex;
+  }
+
+  .sidebar-collapsed .nav-list {
+    justify-items: stretch;
+  }
+
+  .sidebar-collapsed .nav-item {
+    justify-content: flex-start;
+    width: auto;
+    padding: 0 12px;
+  }
+
+  .sidebar-collapsed .nav-label {
+    display: inline;
+  }
 }
 </style>
