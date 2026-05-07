@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import IconCloudDownload from '~icons/lucide/cloud-download'
 import IconFolderOpen from '~icons/lucide/folder-open'
 import JsonImportModal from '@/components/home/JsonImportModal.vue'
 import OverviewPanel from '@/components/home/OverviewPanel.vue'
-import {
-  createDefaultProjectOverview,
-  resolveProjectOverview,
-} from '@/utils/project-parser'
+import { useProjectStore } from '@/stores/project'
 
 const showLocalImportModal = ref(false)
-const importedJsonData = ref<unknown>(null)
-const overview = ref(createDefaultProjectOverview())
+const projectStore = useProjectStore()
+const overview = computed(() => projectStore.overview)
+const hasImportedData = computed(() => Boolean(projectStore.rawProjectData))
 
 function openLocalImportModal() {
   showLocalImportModal.value = true
@@ -26,8 +24,7 @@ function closeLocalImportModal() {
  * 这样后续如果 JSON 解析逻辑扩展，这里不需要继续堆积判断分支。
  */
 function updateOverviewFromJson(data: unknown, fileName: string) {
-  importedJsonData.value = data
-  overview.value = resolveProjectOverview(data, fileName)
+  projectStore.setProjectData(data, fileName)
 }
 
 function handleLocalJsonImported(payload: {
@@ -70,7 +67,7 @@ function handleLocalJsonImported(payload: {
       :project-name="overview.projectName"
       :updated-at="overview.updatedAt"
       :detail-sections="overview.detailSections"
-      :has-imported-data="Boolean(importedJsonData)"
+      :has-imported-data="hasImportedData"
     />
 
     <JsonImportModal

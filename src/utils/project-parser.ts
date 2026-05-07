@@ -1,4 +1,4 @@
-import type { ProjectOverviewData } from '@/types/project-parser'
+import type { ProjectOverviewData, ProjectProtocolItem } from '@/types/project-parser'
 
 const DEFAULT_PROJECT_OVERVIEW: ProjectOverviewData = {
   projectName: '未导入',
@@ -61,6 +61,25 @@ function resolveSectionCount(value: unknown) {
   return '数量：0个'
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function toStringArray(value: unknown) {
+  if (!Array.isArray(value)) return []
+
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
+function extractProtocolInstances(data: unknown) {
+  if (!isRecord(data)) return []
+
+  const protocol = data.protocol
+  if (!isRecord(protocol)) return []
+
+  return Array.isArray(protocol.instances) ? protocol.instances : []
+}
+
 /**
  * 项目解析模块的第一阶段能力：
  * 从项目 JSON 中提取首页概览信息。
@@ -103,4 +122,20 @@ export function resolveProjectOverview(data: unknown, sourceName: string): Proje
 
 export function createDefaultProjectOverview(): ProjectOverviewData {
   return { ...DEFAULT_PROJECT_OVERVIEW }
+}
+
+/**
+ * 从项目 JSON 中提取协议列表。
+ * 页面只依赖 name / owner / path 这些稳定字段，
+ * 其他协议属性统一收敛到 raw，便于协议详情区继续原样展示。
+ */
+export function resolveProjectProtocols(data: unknown): ProjectProtocolItem[] {
+  return extractProtocolInstances(data)
+    .filter(isRecord)
+    .map((item) => ({
+      name: typeof item.name === 'string' && item.name.trim() ? item.name : '未命名协议',
+      owner: toStringArray(item.owner),
+      path: typeof item.path === 'string' ? item.path : '',
+      raw: item,
+    }))
 }
