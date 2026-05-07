@@ -70,7 +70,7 @@ defineProps<{
 .content-card {
   padding: 30px;
   border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 28px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 16px 40px rgba(195, 205, 226, 0.1);
 }
@@ -105,7 +105,7 @@ defineProps<{
 
 .overview-item {
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 6px;
   background: linear-gradient(180deg, #f8faff, #eff4fd);
 }
 
@@ -125,7 +125,7 @@ defineProps<{
 .overview-placeholder {
   margin-top: 20px;
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 6px;
   border: 1px dashed rgba(213, 222, 240, 0.95);
   color: #7f8ca4;
   background: rgba(249, 251, 255, 0.8);
@@ -161,7 +161,7 @@ defineProps<{
 .detail-empty {
   margin-top: 14px;
   padding: 16px 18px;
-  border-radius: 18px;
+  border-radius: 6px;
   border: 1px dashed rgba(213, 222, 240, 0.95);
   color: #7f8ca4;
   background: rgba(249, 251, 255, 0.8);

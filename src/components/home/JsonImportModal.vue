@@ -244,7 +244,7 @@ async function handleRemoteImport() {
 .modal-card {
   width: min(760px, 100%);
   border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 28px;
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 24px 60px rgba(40, 57, 90, 0.2);
 }
@@ -269,7 +269,7 @@ async function handleRemoteImport() {
 .pick-button,
 .secondary-button,
 .primary-button {
-  border-radius: 12px;
+  border-radius: 6px;
   cursor: pointer;
 }
 

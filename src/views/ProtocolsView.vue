@@ -236,7 +236,7 @@ function formatProtocolFieldValue(value: unknown) {
 .content-card {
   padding: 26px 28px;
   border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 28px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 16px 40px rgba(195, 205, 226, 0.1);
 }
@@ -257,7 +257,7 @@ function formatProtocolFieldValue(value: unknown) {
   display: grid;
   gap: 6px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 6px;
   background: linear-gradient(180deg, #f8faff, #eff4fd);
 }
 
@@ -392,7 +392,7 @@ function formatProtocolFieldValue(value: unknown) {
   display: inline-flex;
   align-items: center;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #f2f5fb;
   color: #7b89a3;
   font-size: 0.82rem;
@@ -410,7 +410,7 @@ function formatProtocolFieldValue(value: unknown) {
 .open-button {
   padding: 11px 16px;
   border: none;
-  border-radius: 14px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #ffaf58, #ff8930);
   color: #fff;
   font-size: 0.92rem;
@@ -424,7 +424,7 @@ function formatProtocolFieldValue(value: unknown) {
   flex-wrap: wrap;
   gap: 12px 18px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 6px;
   background: linear-gradient(180deg, #f8faff, #eff4fd);
 }
 
@@ -463,7 +463,7 @@ function formatProtocolFieldValue(value: unknown) {
 .table-shell {
   overflow: hidden;
   border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 16px;
+  border-radius: 6px;
   background: #fbfcff;
 }
 
@@ -510,7 +510,7 @@ function formatProtocolFieldValue(value: unknown) {
 
 @media (max-width: 720px) {
   .content-card {
-    border-radius: 22px;
+    border-radius: 8px;
   }
 
   .tab-button {

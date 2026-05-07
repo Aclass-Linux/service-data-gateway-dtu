@@ -96,7 +96,7 @@ function handleLocalJsonImported(payload: {
 .content-card {
   padding: 30px;
   border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 28px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 16px 40px rgba(195, 205, 226, 0.1);
 }
@@ -136,7 +136,7 @@ function handleLocalJsonImported(payload: {
   gap: 12px;
   min-width: 220px;
   padding: 14px 18px;
-  border-radius: 16px;
+  border-radius: 6px;
   font-size: 0.98rem;
   font-weight: 600;
   cursor: pointer;

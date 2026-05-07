@@ -20,7 +20,7 @@ const emit = defineEmits<{
         <div class="brand-mark">DTU</div>
         <div class="brand-copy">
           <strong>Data Gateway</strong>
-          <span>Embedded Console</span>
+          <span>协议管理平台</span>
         </div>
       </div>
 
@@ -59,14 +59,21 @@ const emit = defineEmits<{
 
 <style scoped>
 .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  width: 284px;
+  height: 100vh;
   padding: 18px;
-  border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 28px;
+  border-right: 1px solid rgba(223, 230, 244, 0.95);
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 16px 40px rgba(195, 205, 226, 0.1);
+  overflow-y: auto;
+  z-index: 20;
 }
 
 .sidebar-head {
@@ -88,7 +95,7 @@ const emit = defineEmits<{
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #ffae58, #ff8530);
   color: #fff;
   font-size: 0.9rem;
@@ -121,7 +128,7 @@ const emit = defineEmits<{
   width: 50px;
   height: 42px;
   border: 1px solid rgba(223, 230, 244, 0.95);
-  border-radius: 999px;
+  border-radius: 6px;
   background: linear-gradient(180deg, #ffffff, #f7f9fe);
   box-shadow: 0 10px 20px rgba(196, 208, 233, 0.14);
   cursor: pointer;
@@ -149,7 +156,7 @@ const emit = defineEmits<{
   display: block;
   width: 14px;
   height: 2px;
-  border-radius: 999px;
+  border-radius: 2px;
   background: #70809d;
 }
 
@@ -177,7 +184,7 @@ const emit = defineEmits<{
   gap: 12px;
   min-height: 50px;
   padding: 0 12px;
-  border-radius: 16px;
+  border-radius: 6px;
   color: #65748f;
   text-decoration: none;
   transition:
@@ -200,7 +207,7 @@ const emit = defineEmits<{
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: linear-gradient(180deg, #f8faff, #eef3fd);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
@@ -220,6 +227,7 @@ const emit = defineEmits<{
 }
 
 .sidebar-collapsed {
+  width: 96px;
   padding: 16px 12px;
 }
 
@@ -233,7 +241,7 @@ const emit = defineEmits<{
 
 .sidebar-collapsed .menu-toggle {
   width: 42px;
-  border-radius: 16px;
+  border-radius: 6px;
 }
 
 .sidebar-collapsed .menu-toggle-arrow {
@@ -257,6 +265,13 @@ const emit = defineEmits<{
 @media (max-width: 980px) {
   .sidebar,
   .sidebar-collapsed {
+    position: static;
+    top: auto;
+    left: auto;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    border: 1px solid rgba(223, 230, 244, 0.95);
     padding: 16px;
   }
 

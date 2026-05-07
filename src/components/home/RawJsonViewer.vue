@@ -126,7 +126,7 @@ function formatInstancesCount(value: unknown) {
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: #eef3fb;
   color: #5c6d89;
   font-size: 0.88rem;
@@ -137,7 +137,7 @@ function formatInstancesCount(value: unknown) {
 .json-value {
   min-width: 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 6px;
   background: #f9fbff;
   border: 1px solid rgba(223, 230, 244, 0.95);
 }
