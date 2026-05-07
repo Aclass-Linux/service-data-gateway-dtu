@@ -1,22 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-
-type StackItem = {
-  id: string
-  name: string
-  version: string
-  status: string
-  summary: string
-  filePath: string
-}
-
-type StackConfig = {
-  home: {
-    name: string
-    description: string
-  }
-  stacks: StackItem[]
-}
+import {
+  clearDraft,
+  loadDraft,
+  loadProtocolSchema,
+  loadStackConfig,
+  saveDraft,
+} from '@/services/protocol'
+import { deepCloneProtocol, normalizeProtocol, toDisplayValue } from '@/utils/protocol'
+import type { ProtocolSchema, StackItem } from '@/types/protocol'
 
 type TabItem = {
   id: string
@@ -32,27 +24,50 @@ type TableRow = {
 
 type GroupRow = {
   groupName: string
-  items: TableRow[]
+  items: {
+    key: string
+    value: string
+    rawValue: unknown
+  }[]
 }
 
 const loading = ref(false)
 const error = ref('')
-const config = ref<StackConfig | null>(null)
+const stacks = ref<StackItem[]>([])
 
 const tabs = ref<TabItem[]>([{ id: 'home', title: '首页', closable: false }])
 const activeTabId = ref('home')
+const keyword = ref('')
 
-const tabJsonMap = ref<Record<string, unknown>>({})
+const tabJsonMap = ref<Record<string, ProtocolSchema>>({})
+const tabOriginalMap = ref<Record<string, ProtocolSchema>>({})
 const tabLoadingMap = ref<Record<string, boolean>>({})
 const tabErrorMap = ref<Record<string, string>>({})
+const tabMessageMap = ref<Record<string, string>>({})
+
+const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.value) || null)
+const activeTabData = computed(() => tabJsonMap.value[activeTabId.value])
+const activeTabLoading = computed(() => tabLoadingMap.value[activeTabId.value] || false)
+const activeTabError = computed(() => tabErrorMap.value[activeTabId.value] || '')
+const activeTabMessage = computed(() => tabMessageMap.value[activeTabId.value] || '')
+
+const keywordNormalized = computed(() => keyword.value.trim().toLowerCase())
+
+function setTabMessage(tabId: string, message: string) {
+  tabMessageMap.value[tabId] = message
+  window.setTimeout(() => {
+    if (tabMessageMap.value[tabId] === message) {
+      tabMessageMap.value[tabId] = ''
+    }
+  }, 1800)
+}
 
 async function loadConfig() {
   loading.value = true
   error.value = ''
   try {
-    const response = await fetch('/config/protocol-stacks.json')
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    config.value = (await response.json()) as StackConfig
+    const config = await loadStackConfig()
+    stacks.value = config.stacks
   } catch (err) {
     error.value = '协议栈配置读取失败，请检查 /public/config/protocol-stacks.json。'
     console.error(err)
@@ -64,11 +79,13 @@ async function loadConfig() {
 async function loadTabJson(tabId: string, filePath: string) {
   tabLoadingMap.value[tabId] = true
   tabErrorMap.value[tabId] = ''
+
   try {
-    const response = await fetch(filePath)
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const data = await response.json()
-    tabJsonMap.value[tabId] = data
+    const remote = normalizeProtocol(await loadProtocolSchema(filePath))
+    tabOriginalMap.value[tabId] = deepCloneProtocol(remote)
+
+    const draft = loadDraft(tabId)
+    tabJsonMap.value[tabId] = draft ? normalizeProtocol(draft) : remote
   } catch (err) {
     tabErrorMap.value[tabId] = `读取失败：${filePath}`
     console.error(err)
@@ -111,25 +128,46 @@ function closeTab(id: string) {
   }
 }
 
-function toDisplayValue(value: unknown): string {
-  if (value === null) return 'null'
-  if (typeof value === 'string') return value
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
-  if (Array.isArray(value)) return value.map((item) => toDisplayValue(item)).join(', ')
-  if (typeof value === 'object') return JSON.stringify(value)
-  return String(value)
+function updateBaseValue(key: string, value: string) {
+  const tabId = activeTabId.value
+  const schema = tabJsonMap.value[tabId]
+  if (!schema) return
+  schema[key] = value
 }
 
-const activeTab = computed(() => tabs.value.find((t) => t.id === activeTabId.value) || null)
-const activeTabData = computed(() => tabJsonMap.value[activeTabId.value])
-const activeTabLoading = computed(() => tabLoadingMap.value[activeTabId.value] || false)
-const activeTabError = computed(() => tabErrorMap.value[activeTabId.value] || '')
+function updateGroupValue(groupIndex: number, itemIndex: number, value: string) {
+  const tabId = activeTabId.value
+  const schema = tabJsonMap.value[tabId]
+  if (!schema?.groups?.[groupIndex]?.items?.[itemIndex]) return
+  schema.groups[groupIndex].items[itemIndex].value = value
+}
+
+function saveActiveDraft() {
+  const tabId = activeTabId.value
+  if (tabId === 'home') return
+  const schema = tabJsonMap.value[tabId]
+  if (!schema) return
+
+  saveDraft(tabId, schema)
+  setTabMessage(tabId, '草稿已保存')
+}
+
+function resetActiveData() {
+  const tabId = activeTabId.value
+  if (tabId === 'home') return
+  const original = tabOriginalMap.value[tabId]
+  if (!original) return
+
+  tabJsonMap.value[tabId] = deepCloneProtocol(original)
+  clearDraft(tabId)
+  setTabMessage(tabId, '已重置为原始配置')
+}
 
 const activeTabRows = computed<TableRow[]>(() => {
   const data = activeTabData.value
   if (!data || typeof data !== 'object' || Array.isArray(data)) return []
 
-  return Object.entries(data as Record<string, unknown>)
+  return Object.entries(data)
     .filter(([key]) => key !== 'groups')
     .map(([key, value]) => ({
       key,
@@ -141,23 +179,35 @@ const activeGroupRows = computed<GroupRow[]>(() => {
   const data = activeTabData.value
   if (!data || typeof data !== 'object' || Array.isArray(data)) return []
 
-  const groups = (data as Record<string, unknown>).groups
+  const groups = data.groups
   if (!Array.isArray(groups)) return []
 
-  return groups.map((group, index) => {
-    const groupObj = (group && typeof group === 'object') ? (group as Record<string, unknown>) : {}
-    const groupName = typeof groupObj.groupName === 'string' ? groupObj.groupName : `分组${index + 1}`
-    const rawItems = Array.isArray(groupObj.items) ? groupObj.items : []
+  return groups.map((group) => ({
+    groupName: group.groupName,
+    items: group.items.map((item) => ({
+      key: item.key,
+      value: toDisplayValue(item.value),
+      rawValue: item.value,
+    })),
+  }))
+})
 
-    const items = rawItems.map((item, itemIndex) => {
-      const itemObj = (item && typeof item === 'object') ? (item as Record<string, unknown>) : {}
-      const key = typeof itemObj.key === 'string' ? itemObj.key : `条目${itemIndex + 1}`
-      const value = toDisplayValue(itemObj.value)
-      return { key, value }
-    })
+const filteredBaseRows = computed(() => {
+  const kw = keywordNormalized.value
+  if (!kw) return activeTabRows.value
+  return activeTabRows.value.filter((row) => row.key.toLowerCase().includes(kw) || row.value.toLowerCase().includes(kw))
+})
 
-    return { groupName, items }
-  })
+const filteredGroupRows = computed(() => {
+  const kw = keywordNormalized.value
+  if (!kw) return activeGroupRows.value
+
+  return activeGroupRows.value
+    .map((group) => ({
+      groupName: group.groupName,
+      items: group.items.filter((item) => item.key.toLowerCase().includes(kw) || item.value.toLowerCase().includes(kw)),
+    }))
+    .filter((group) => group.groupName.toLowerCase().includes(kw) || group.items.length > 0)
 })
 
 onMounted(() => {
@@ -171,7 +221,7 @@ onMounted(() => {
       <p v-if="loading" class="hint">正在加载协议栈配置...</p>
       <p v-else-if="error" class="error">{{ error }}</p>
 
-      <template v-else-if="config">
+      <template v-else>
         <div class="tabs">
           <div
             v-for="tab in tabs"
@@ -188,7 +238,7 @@ onMounted(() => {
           <h3 class="panel-title">打开协议栈标签</h3>
 
           <div class="list">
-            <div v-for="stack in config.stacks" :key="stack.id" class="list-item">
+            <div v-for="stack in stacks" :key="stack.id" class="list-item">
               <div class="item-main">
                 <div class="item-name">{{ stack.name }}</div>
                 <div class="item-meta">版本 {{ stack.version }} | 状态 {{ stack.status }}</div>
@@ -201,41 +251,68 @@ onMounted(() => {
         </div>
 
         <div class="panel" v-else-if="activeTab">
-          <h3 class="panel-title">{{ activeTab.title }} 协议条目</h3>
+          <div class="panel-head">
+            <h3 class="panel-title">{{ activeTab.title }} 协议条目</h3>
+            <div class="ops">
+              <button class="small-btn" type="button" @click="saveActiveDraft">保存草稿</button>
+              <button class="small-btn gray" type="button" @click="resetActiveData">重置</button>
+            </div>
+          </div>
+
           <p class="path" v-if="activeTab.filePath">文件地址：{{ activeTab.filePath }}</p>
+          <p v-if="activeTabMessage" class="success">{{ activeTabMessage }}</p>
+
+          <div class="filter-row">
+            <input v-model="keyword" class="search" type="text" placeholder="搜索字段名或值" />
+          </div>
+
           <p v-if="activeTabLoading" class="hint">正在加载 JSON...</p>
           <p v-else-if="activeTabError" class="error">{{ activeTabError }}</p>
-          <p v-else-if="activeTabRows.length === 0 && activeGroupRows.length === 0" class="hint">暂无可展示条目</p>
+          <p v-else-if="filteredBaseRows.length === 0 && filteredGroupRows.length === 0" class="hint">暂无匹配条目</p>
 
-          <table v-else-if="activeTabRows.length > 0" class="protocol-table">
+          <table v-else-if="filteredBaseRows.length > 0" class="protocol-table">
             <thead>
               <tr>
                 <th>字段</th>
-                <th>值</th>
+                <th>值（可编辑）</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in activeTabRows" :key="row.key">
+              <tr v-for="row in filteredBaseRows" :key="row.key">
                 <td class="key-col">{{ row.key }}</td>
-                <td>{{ row.value }}</td>
+                <td>
+                  <input
+                    class="edit-input"
+                    :value="row.value"
+                    type="text"
+                    @change="updateBaseValue(row.key, ($event.target as HTMLInputElement).value)"
+                  />
+                </td>
               </tr>
             </tbody>
           </table>
 
-          <div v-if="activeGroupRows.length > 0" class="group-section">
-            <div v-for="group in activeGroupRows" :key="group.groupName" class="group-card">
+          <div v-if="filteredGroupRows.length > 0" class="group-section">
+            <div v-for="(group, groupIndex) in filteredGroupRows" :key="group.groupName" class="group-card">
               <h4 class="group-title">{{ group.groupName }}</h4>
               <table class="protocol-table">
                 <thead>
                   <tr>
                     <th>条目</th>
-                    <th>值</th>
+                    <th>值（可编辑）</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in group.items" :key="item.key">
+                  <tr v-for="(item, itemIndex) in group.items" :key="item.key">
                     <td class="key-col">{{ item.key }}</td>
-                    <td>{{ item.value }}</td>
+                    <td>
+                      <input
+                        class="edit-input"
+                        :value="item.value"
+                        type="text"
+                        @change="updateGroupValue(groupIndex, itemIndex, ($event.target as HTMLInputElement).value)"
+                      />
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -252,6 +329,7 @@ onMounted(() => {
 .card { background: #fff; border: 1px solid #e6e8eb; border-radius: 8px; padding: 18px; }
 .hint { color: #5f6873; }
 .error { color: #c0392b; }
+.success { color: #00a870; margin: 8px 0; }
 
 .tabs {
   display: flex;
@@ -259,77 +337,115 @@ onMounted(() => {
   gap: 1px;
   background: #f3f4f6;
   border: 1px solid #e6e8eb;
-  border-bottom: none;
   border-radius: 6px 6px 0 0;
-  padding: 0 6px;
-  overflow-x: auto;
+  padding: 4px 4px 0;
 }
+
 .tab {
   display: flex;
   align-items: center;
-  background: #eef0f3;
-  color: #5b6570;
-  min-height: 36px;
-  border-top: 2px solid transparent;
+  border: 1px solid #d8dee4;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: #f8f9fb;
+  height: 34px;
 }
 .tab.active {
   background: #fff;
-  color: #222;
-  border-top-color: #ff8a00;
+  border-color: #ff8a00;
 }
+
 .tab-title {
   border: none;
   background: transparent;
-  color: inherit;
-  height: 34px;
+  height: 100%;
   padding: 0 12px;
   cursor: pointer;
-  white-space: nowrap;
+  color: #333;
 }
 .tab-close {
   border: none;
   background: transparent;
-  color: inherit;
   width: 26px;
   height: 26px;
-  margin-right: 4px;
-  border-radius: 4px;
   cursor: pointer;
+  color: #777;
 }
-.tab-close:hover { background: #e8ebef; }
 
 .panel {
   border: 1px solid #e6e8eb;
   border-top: none;
-  background: #fff;
-  color: #1f2937;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 8px 8px;
   padding: 14px;
 }
-.panel-title { margin: 0 0 10px; font-size: 16px; color: #111; }
-.path { margin: 0 0 10px; color: #66707c; font-size: 13px; }
+.panel-title { margin: 0 0 10px; }
+.path { margin: 0 0 10px; font-size: 13px; color: #8b949e; }
 
-.list { display: grid; gap: 10px; }
-.list-item {
-  border: 1px solid #e6e8eb;
-  border-radius: 6px;
-  padding: 10px;
+.panel-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
-.item-main { min-width: 0; }
-.item-name { font-weight: 600; margin-bottom: 4px; }
-.item-meta { font-size: 13px; color: #66707c; margin-bottom: 4px; }
-.item-summary { color: #3f4852; margin-bottom: 4px; }
-.item-path { font-size: 12px; color: #8b949e; word-break: break-all; }
-.open-btn {
+
+.ops {
+  display: flex;
+  gap: 8px;
+}
+
+.small-btn {
+  height: 30px;
   border: 1px solid #ff8a00;
   background: #fff7ed;
   color: #ff8a00;
   border-radius: 4px;
-  height: 30px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.small-btn.gray {
+  border-color: #d0d7de;
+  background: #fff;
+  color: #5f6873;
+}
+
+.filter-row {
+  margin: 10px 0;
+}
+
+.search {
+  width: 280px;
+  max-width: 100%;
+  height: 32px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  padding: 0 10px;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+.list-item {
+  border: 1px solid #e6e8eb;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.item-main { min-width: 0; }
+.item-name { font-weight: 700; color: #1f2937; }
+.item-meta { margin-top: 4px; color: #5f6873; font-size: 13px; }
+.item-summary { margin-top: 6px; color: #4b5563; font-size: 14px; }
+.item-path { margin-top: 6px; color: #8b949e; font-size: 12px; }
+.open-btn {
+  height: 32px;
+  border: 1px solid #ff8a00;
+  background: #ff8a00;
+  color: #fff;
+  border-radius: 4px;
   padding: 0 12px;
   cursor: pointer;
 }
@@ -338,6 +454,7 @@ onMounted(() => {
   width: 100%;
   border-collapse: collapse;
   border: 1px solid #e6e8eb;
+  margin-bottom: 12px;
 }
 .protocol-table th,
 .protocol-table td {
@@ -346,17 +463,21 @@ onMounted(() => {
   text-align: left;
   vertical-align: top;
 }
-.protocol-table th {
-  background: #f8f9fb;
-  color: #374151;
-}
-.key-col {
-  width: 220px;
-  font-weight: 600;
-  color: #111827;
+.protocol-table th { background: #f8f9fb; }
+.key-col { width: 220px; font-weight: 600; }
+
+.edit-input {
+  width: 100%;
+  height: 30px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  padding: 0 8px;
 }
 
-.group-section { margin-top: 12px; display: grid; gap: 12px; }
+.group-section {
+  display: grid;
+  gap: 12px;
+}
 .group-card {
   border: 1px solid #e6e8eb;
   border-radius: 6px;
@@ -365,7 +486,6 @@ onMounted(() => {
 }
 .group-title {
   margin: 0 0 8px;
-  font-size: 14px;
-  color: #1f2937;
+  font-size: 15px;
 }
 </style>

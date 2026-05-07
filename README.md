@@ -1,87 +1,334 @@
-# service-data-gateway-dtu
+# 前端技术方案文档
 
-数据枢纽的核心功能。
+## 嵌入式实时仪表盘系统（纯前端部分）
 
-## 项目背景理解
+文档版本：2.0  
+最后更新：2026-05-07
 
-当前开发环境是 **WSL**，目标部署环境是单片机侧（或其配套系统）使用 **Nginx** 托管 Web 页面。
+---
 
-由于项目采用前后端分离架构，当前阶段先在 WSL 中安装并配置 Nginx 进行本地模拟验证：
+## 1. 项目背景与目标
 
-- 前端使用 **Vue 3** 进行设计与开发，构建后的静态资源由 Nginx 托管（如 `html/js/css`）。
-- 后端服务独立运行，前端通过接口访问后端。
-- 先在 WSL 完成可用性验证，再迁移到单片机目标环境，降低联调与部署风险。
+针对嵌入式服务器（如 Zynq7020 / RK3576）与台式机浏览器的典型架构，建设一套**高性能、纯前端**的数据展示系统。核心目标：
 
-## 环境搭建软件
+- **十万级数据表格能力**：支持类 Excel 编辑、筛选、排序，滚动流畅。
+- **实时数据接收与可视化**：通过 WebSocket 接收实时数据并绘制趋势。
+- **本地持久化**：页面刷新自动恢复关键数据，支持导入/导出。
+- **嵌入式友好**：服务器轻量化，浏览器承担主要计算和渲染。
 
-建议安装以下软件用于本地开发与模拟：
+---
 
-- `WSL2`：Windows 下的 Linux 开发环境。
-- `Ubuntu 22.04 LTS`（WSL 发行版）：作为主要开发系统。
-- `Node.js 18+`：运行 Vue 3 / Vite 开发环境。
-- `npm` 或 `pnpm`：前端依赖管理工具。
-- `Nginx`：托管前端构建产物并模拟部署环境。
-- `Git`：代码版本管理。
-- `VS Code` + `Remote - WSL` 插件：跨 Windows/WSL 开发。
-- `curl`：接口连通性与本地调试。
+## 2. 方案边界与分层
 
-## Vue 3 推荐项目结构
+### 2.1 业务边界
 
-下面是参考常见 Vue 3（Vite）项目的目录结构，适合前后端分离场景：
+- 本文档聚焦**前端应用层**（Vue 页面、数据展示、配置读取、交互逻辑）。
+- 后端、驱动、协议网关实现细节不在本文档实现范围内，仅定义接口约定。
+
+### 2.2 前端职责分层
+
+1. **展示层（Views）**：页面布局、用户交互、状态反馈。
+2. **数据访问层（API）**：统一 HTTP 请求封装、后端接口调用。
+3. **静态配置层（public/config、public/protocols）**：协议栈清单、首页配置、协议定义 JSON。
+4. **路由层（Router）**：功能页编排、页面导航。
+
+---
+
+## 3. 当前工程现状（与代码一致）
+
+当前仓库已具备可运行的 Vue 3 前端骨架，关键能力如下：
+
+- 技术栈：`Vue 3 + TypeScript + Vite + Vue Router + Pinia(已接入入口)`。
+- 首页支持轮询读取 `/config/home-config.json` 并展示参数状态。
+- 协议管理包含密码校验入口页（当前为前端本地模拟校验）。
+- 协议工作台支持：
+  - 读取 `/config/protocol-stacks.json` 协议清单。
+  - 按标签页打开协议 JSON 文件。
+  - 将协议字段与 `groups.items` 结构渲染为表格。
+- 协议数据测试页支持独立验证单个协议文件读取与解析。
+
+### 3.1 现有路由
+
+- `/`：首页（运行状态与参数展示）
+- `/protocol`：协议管理权限页
+- `/protocol/workbench`：协议管理工作台
+- `/protocol/data-test`：协议数据读取测试页
+
+### 3.2 现有目录（核心）
 
 ```text
 service-data-gateway-dtu/
 ├─ README.md
-├─ package.json
-├─ vite.config.ts
-├─ tsconfig.json
-├─ .env.development
-├─ .env.production
-├─ public/
-│  ├─ favicon.ico
-│  └─ logo.png
-├─ src/
-│  ├─ main.ts
-│  ├─ App.vue
-│  ├─ assets/
-│  │  ├─ images/
-│  │  └─ styles/
-│  ├─ components/
-│  │  ├─ common/
-│  │  └─ business/
-│  ├─ views/
-│  │  ├─ home/
-│  │  ├─ monitor/
-│  │  └─ settings/
-│  ├─ router/
-│  │  └─ index.ts
-│  ├─ stores/
-│  │  ├─ index.ts
-│  │  └─ modules/
-│  ├─ api/
-│  │  ├─ http.ts
-│  │  └─ modules/
-│  ├─ utils/
-│  │  ├─ auth.ts
-│  │  ├─ format.ts
-│  │  └─ validate.ts
-│  ├─ types/
-│  ├─ hooks/
-│  ├─ directives/
-│  ├─ layouts/
-│  └─ constants/
-├─ nginx/
-│  └─ default.conf
+├─ frontend/
+│  ├─ src/
+│  │  ├─ api/
+│  │  │  ├─ http.ts
+│  │  │  ├─ home.ts
+│  │  │  └─ protocol.ts
+│  │  ├─ router/index.ts
+│  │  ├─ views/
+│  │  │  ├─ HomeView.vue
+│  │  │  ├─ ProtocolAuthView.vue
+│  │  │  ├─ ProtocolWorkbenchView.vue
+│  │  │  └─ ProtocolDataTestView.vue
+│  │  ├─ App.vue
+│  │  └─ main.ts
+│  └─ public/
+│     ├─ config/
+│     │  ├─ home-config.json
+│     │  └─ protocol-stacks.json
+│     └─ protocols/
+│        ├─ dlt645.json
+│        ├─ modbus.json
+│        └─ upp.json
 └─ dist/
 ```
 
-目录说明（核心）：
+---
 
-- `src/views`：页面级组件，一个页面一个目录，便于维护。
-- `src/components`：可复用组件，建议按通用组件和业务组件拆分。
-- `src/api`：接口请求层，`http.ts` 放 axios 实例与拦截器，`modules` 按业务拆分接口。
-- `src/stores`：Pinia 状态管理，`modules` 按功能划分。
-- `src/router`：Vue Router 路由配置与路由守卫。
-- `src/assets/styles`：全局样式、变量、主题。
-- `nginx/default.conf`：本地模拟与后续部署可复用的 Nginx 配置。
-- `dist`：Vue 3 构建产物目录，部署时由 Nginx 托管。
+## 4. 目标架构设计（规划）
+
+### 4.1 逻辑架构
+
+```text
+嵌入式设备/网关  ->  WebSocket/HTTP  ->  浏览器前端
+                                      ├─ 协议配置工作台
+                                      ├─ 实时曲线展示
+                                      ├─ 大数据表格
+                                      └─ 本地持久化（IndexedDB）
+```
+
+### 4.2 数据流
+
+1. **配置流**：浏览器读取 `public/config/*.json`，驱动首页与协议入口展示。  
+2. **协议流**：用户在工作台选择协议 -> 前端读取 `public/protocols/*.json` -> 渲染表格。  
+3. **实时流（规划）**：浏览器通过 WebSocket 收包 -> 缓冲批量渲染图表。  
+4. **持久化流（规划）**：表格编辑结果与快照写入 IndexedDB -> 刷新后恢复。  
+
+---
+
+## 5. 技术选型
+
+### 5.1 当前已落地
+
+- **Vue 3 + TS**：页面开发与类型安全。
+- **Vite**：快速开发与构建。
+- **原生 Fetch 封装**：统一 HTTP 调用（`src/api/http.ts`）。
+- **静态 JSON 配置机制**：便于联调和离线演示。
+
+### 5.2 目标增强（后续迭代）
+
+- **表格组件**：RevoGrid（10 万行级虚拟滚动）。
+- **图表组件**：ECharts（实时曲线 + 降采样）。
+- **本地存储**：IndexedDB + Dexie。
+- **导入导出**：SheetJS（xlsx/csv）。
+- **实时通信**：WebSocket。
+
+---
+
+## 6. 模块设计
+
+### 6.1 首页模块（Home）
+
+- 数据源：`/config/home-config.json`
+- 机制：首次加载 + 2 秒轮询刷新
+- 目标：展示系统标题、副标题、状态参数列表
+- 异常处理：请求失败时展示用户可读错误信息
+
+### 6.2 协议权限模块（ProtocolAuth）
+
+- 当前：本地模拟密码校验（`admin123`）
+- 目标：切换为后端鉴权接口 `POST /api/protocol/auth`
+- 成功后：跳转至协议工作台
+- 安全建议：
+  - 不在前端写死口令
+  - 使用短时 token / session
+  - 对敏感接口做鉴权与限流
+
+### 6.3 协议工作台模块（ProtocolWorkbench）
+
+- 输入：`/config/protocol-stacks.json`
+- 行为：
+  - 多标签页打开协议
+  - 标签切换、关闭
+  - 协议文件字段表格化展示
+  - `groups` 分组条目独立展示
+- 目标扩展：
+  - 支持字段搜索、筛选
+  - 支持字段编辑、回写
+  - 支持版本对比
+
+### 6.4 协议数据测试模块（ProtocolDataTest）
+
+- 作用：独立验证协议 JSON 可读性与结构正确性
+- 能力：选择协议、重新加载、展示解析结果
+- 用途：研发联调、排错、回归测试
+
+### 6.5 API 访问层（src/api）
+
+- `http.ts`：统一 GET/POST、状态码校验、JSON 解析
+- `home.ts`：首页接口定义（如 `/api/health`）
+- `protocol.ts`：协议鉴权接口定义
+- 建议增强：
+  - 请求超时
+  - 统一错误码映射
+  - 401/403 统一处理
+
+---
+
+## 7. 配置文件规范
+
+### 7.1 `public/config/protocol-stacks.json`
+
+建议字段：
+
+- `home`: 首页展示信息
+- `stacks[]`: 协议清单，包含：
+  - `id`（唯一标识）
+  - `name`（协议名）
+  - `version`（版本）
+  - `status`（状态，如 stable/beta）
+  - `summary`（简述）
+  - `filePath`（协议 JSON 路径）
+
+### 7.2 协议文件（`public/protocols/*.json`）
+
+建议结构：
+
+- 顶层基础字段（协议名、编码、说明等）
+- `groups[]`：分组数组
+- `groups[].items[]`：键值条目
+
+约束建议：
+
+- JSON UTF-8 编码
+- 字段命名统一 camelCase
+- 关键字段不能为空（`id`、`groupName`、`key`）
+
+---
+
+## 8. 页面布局与交互（补充完善）
+
+### 8.1 页面布局
+
+- 顶层：应用壳（`App.vue`）承载导航与路由出口。
+- 内容：各视图采用卡片布局，统一边框、圆角、提示色。
+- 工作台：上方标签栏 + 下方协议内容区。
+
+### 8.2 关键交互
+
+- 标签页：
+  - 同一协议避免重复打开
+  - 支持关闭并回退到相邻标签
+- 加载反馈：
+  - `loading` 文案提示
+  - 错误信息单独展示
+- 表格展示：
+  - 基础字段与分组字段分块渲染
+
+### 8.3 状态提示规范
+
+- `hint`：普通加载或说明
+- `error`：接口或文件读取失败
+- `success`：校验通过或操作成功
+
+---
+
+## 9. 性能与稳定性策略
+
+### 9.1 当前策略
+
+- 轻量 JSON 拉取，渲染开销可控
+- 通过计算属性减少重复转换
+- 组件卸载时清理定时器，避免泄漏
+
+### 9.2 后续策略（目标能力）
+
+- 大表格虚拟滚动（RevoGrid）
+- 图表批量刷新（50ms 节流）
+- 实时数据点数量上限（如 5000）
+- IndexedDB 异步持久化 + 防抖写入
+
+---
+
+## 10. 异常处理与降级
+
+| 场景 | 当前处理 | 后续建议 |
+| --- | --- | --- |
+| 配置文件不存在/格式错误 | 页面提示错误文案 | 增加 JSON Schema 校验与定位信息 |
+| 协议文件读取失败 | 显示具体 filePath | 增加重试与错误上报 |
+| 协议鉴权失败 | 页面提示密码错误 | 接入真实接口并增加失败次数限制 |
+| WebSocket 中断（规划） | 暂未实现 | 指数退避重连 + 心跳检测 |
+| IndexedDB 不可用（规划） | 暂未实现 | 降级内存存储并提示导出 |
+
+---
+
+## 11. 部署与运行
+
+### 11.1 开发环境
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### 11.2 生产构建
+
+```bash
+cd frontend
+npm run build
+```
+
+构建产物输出到仓库根目录 `dist/`，可由 Nginx 托管。
+
+### 11.3 路由部署要点
+
+项目使用 Vue Router History 模式，Nginx 需配置回退：
+
+```nginx
+try_files $uri $uri/ /index.html;
+```
+
+---
+
+## 12. 分阶段实施计划
+
+### 阶段 A（已完成）
+
+- Vue 工程搭建
+- 首页配置读取与轮询
+- 协议权限页/工作台/数据测试页
+- 静态协议清单与协议文件渲染
+
+### 阶段 B（进行中）
+
+- 协议鉴权切换后端接口
+- 工作台交互增强（搜索、筛选、编辑）
+- API 错误处理标准化
+
+### 阶段 C（目标能力）
+
+- RevoGrid 十万级表格
+- ECharts + WebSocket 实时曲线
+- IndexedDB 本地持久化与恢复
+- SheetJS 导入导出
+
+---
+
+## 13. 测试与验收建议
+
+1. **配置加载测试**：
+   - 修改 `home-config.json`，验证 2 秒内页面刷新。
+2. **协议工作台测试**：
+   - 打开多个协议标签并切换、关闭，验证状态正确。
+3. **异常测试**：
+   - 人为改错 JSON，确认页面有明确报错。
+4. **构建测试**：
+   - 执行 `npm run build`，确认产物可部署。
+
+---
+
+## 14. 总结
+
+该项目已完成“可运行的协议配置展示前端”基础形态，并具备向“嵌入式实时仪表盘”演进的清晰路径。后续按阶段补齐鉴权、实时通信、本地持久化与大数据渲染能力，即可支撑工业联调与现场监控场景。
