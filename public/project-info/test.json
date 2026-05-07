@@ -1,0 +1,55 @@
+{
+    "project": "ATS",
+    "updated-time": "2026-05-07T16:30:00+08:00",
+
+    "board":{
+        "describe": "板卡明细",
+        "instances":["arm", "zynq"]
+    },
+    "protocol":
+    {
+        "describe": "协议明细",
+        "instances":
+        [
+            {
+                "id": "modbus-master-v1",
+                "name": "Modbus 主站协议",
+                "code": "modbus",
+                "version": "1.0.0",
+                "owner": ["arm", "zynq"],
+                "path": "/protocols/modbus-master-v1.json",
+                "description": "用于主从设备之间的 Modbus 通信"
+            }
+        ]
+
+    },
+    "device" :
+    {
+        "describe": "设备列表",
+        "instances":
+        [
+            {
+                "name":"arm",
+                "instances":
+                [
+                    {
+                        "name":"zynq",
+                        "type": "master",
+                        "path": "/modbus1.json"
+                    }
+                ]
+            },
+            {
+                "name":"zynq",
+                "instances":
+                [
+                    {
+                        "name":"arm",
+                        "type": "slave",
+                        "path": "/modbus1.json"
+                    }
+                ]
+            }
+        ]
+    }
+}

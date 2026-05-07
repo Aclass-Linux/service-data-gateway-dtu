@@ -1,0 +1,39 @@
+{
+  "id": "modbus-master-v1",
+  "name": "Modbus 主站协议",
+  "code": "modbus",
+  "version": "1.0.0",
+  "updated-time": "2026-05-07T16:30:00+08:00",
+  "transport": {
+    "type": "serial",
+    "mode": "rtu",
+    "baudrate": 115200,
+    "databits": 8,
+    "stopbits": 1,
+    "parity": "none"
+  },
+  "frame": {
+    "request-timeout-ms": 1000,
+    "retry-count": 3
+  },
+  "registers": [
+    {
+      "name": "device_status",
+      "address": 1,
+      "type": "holding-register",
+      "data-type": "uint16",
+      "length": 1,
+      "readonly": true,
+      "description": "设备状态"
+    },
+    {
+      "name": "temperature",
+      "address": 2,
+      "type": "holding-register",
+      "data-type": "int16",
+      "length": 1,
+      "unit": "C",
+      "description": "温度值"
+    }
+  ]
+}
