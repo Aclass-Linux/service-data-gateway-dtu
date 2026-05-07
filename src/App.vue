@@ -1,85 +1,111 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import { computed, ref } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+import AppSidebar from '@/components/layout/AppSidebar.vue'
+import AppTopbar from '@/components/layout/AppTopbar.vue'
+import { navigationItems } from '@/config/navigation'
+
+const route = useRoute()
+const sidebarCollapsed = ref(false)
+
+// Keep page title derivation in App so all pages can reuse the same shell logic.
+const pageTitle = computed(() => {
+  const current = navigationItems.find((item) => item.to === route.path)
+  return current?.label ?? '数据网关平台'
+})
+
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <main class="portal-page" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
+    <AppTopbar :title="pageTitle" />
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+    <section class="workspace">
+      <AppSidebar
+        :collapsed="sidebarCollapsed"
+        :items="navigationItems"
+        :current-path="route.path"
+        @toggle="toggleSidebar"
+      />
 
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+      <section class="main-panel">
+        <RouterView />
+      </section>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+.portal-page {
+  min-height: 100vh;
+  padding: 18px;
+  background: #f5f7fb;
+  color: #4f5d78;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.workspace {
+  display: grid;
+  grid-template-columns: 284px minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 18px;
 }
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
+.main-panel {
+  min-width: 0;
 }
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
+.sidebar-collapsed .workspace {
+  grid-template-columns: 96px minmax(0, 1fr);
 }
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+.sidebar-collapsed .sidebar {
+  padding: 16px 12px;
 }
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+.sidebar-collapsed .sidebar-head {
+  justify-content: center;
 }
 
-nav a:first-of-type {
-  border: 0;
+.sidebar-collapsed .menu-toggle {
+  width: 42px;
+  border-radius: 16px;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+.sidebar-collapsed .menu-toggle-arrow {
+  transform: rotate(-135deg);
+}
+
+.sidebar-collapsed .sidebar-brand {
+  display: none;
+}
+
+.sidebar-collapsed .nav-list {
+  justify-items: center;
+}
+
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  width: 56px;
+  padding: 0;
+}
+
+.sidebar-collapsed .nav-label {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .workspace,
+  .sidebar-collapsed .workspace {
+    grid-template-columns: 1fr;
   }
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
+@media (max-width: 720px) {
+  .portal-page {
+    padding: 10px;
   }
 }
 </style>
